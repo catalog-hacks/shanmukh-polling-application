@@ -17,21 +17,29 @@ export default function CreatePollForm() {
     };
 
     const createPoll = async () => {
-        const response = await fetch("http://localhost:3030/api/polls", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                question,
-                options,
-            }),
-        });
+        try {
+            const userResponse = await fetch("http://localhost:3030/api/get_user_id");
+            const { user_id } = await userResponse.json();
 
-        if (response.ok) {
-            alert("Poll created successfully!");
-        } else {
-            alert("Failed to create poll.");
+            const response = await fetch("http://localhost:3030/api/polls", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    user_id,
+                    question,
+                    options,
+                }),
+            });
+
+            if (response.ok) {
+                alert("Poll created successfully!");
+            } else {
+                alert("Failed to create poll.");
+            }
+        } catch {
+            alert("Error fetching user ID or creating poll.");
         }
     };
 

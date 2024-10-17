@@ -1,7 +1,6 @@
 import "./globals.css"
 import type {Metadata} from "next"
 import {Inter} from "next/font/google"
-import CorbadoProvider from "@/app/_utils/Provider"
 import Provider from "@/app/_utils/Provider"
 
 const inter = Inter({subsets: ["latin"]})

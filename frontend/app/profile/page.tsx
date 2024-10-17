@@ -45,7 +45,7 @@ export default async function Profile() {
 function ClientProfile({ user, polls }: { user: any, polls: any[] }) {
     return (
         <div>
-            <h1>Profile Page</h1>
+            <h1>Welcome to the Polling App</h1>
             <p>
                 User-ID: {user.userId}<br />
                 Name: {user.fullName}
