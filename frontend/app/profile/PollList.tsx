@@ -13,10 +13,12 @@ interface PollListProps {
 }
 
 export default function PollList({ polls }: PollListProps) {
-    const [selectedOption, setSelectedOption] = useState<number | null>(null);
+    const [selectedOption, setSelectedOption] = useState<Record<string, number | null>>({});
 
     const voteOnPoll = async (pollId: string) => {
-        if (selectedOption !== null) {
+        const selected = selectedOption[pollId];
+
+        if (selected !== null) {
             const response = await fetch(`http://localhost:3030/api/votes`, {
                 method: "POST",
                 headers: {
@@ -24,7 +26,7 @@ export default function PollList({ polls }: PollListProps) {
                 },
                 body: JSON.stringify({
                     poll_id: pollId,
-                    option_index: selectedOption,
+                    option_index: selected,
                 }),
             });
 
@@ -36,23 +38,35 @@ export default function PollList({ polls }: PollListProps) {
         }
     };
 
+    const handleOptionChange = (pollId: string, index: number) => {
+        setSelectedOption((prev) => ({
+            ...prev,
+            [pollId]: index,
+        }));
+    };
+
     return (
         <div>
             <h2>Polls</h2>
             {polls.map((poll) => (
-                <div key={poll.id}>
+                <div key={`poll-${poll.id}`}>
                     <h3>{poll.question}</h3>
-                    {poll.options.map((option: string, index: number) => (
-                        <label key={index}>
-                            <input
-                                type="radio"
-                                value={index}
-                                checked={selectedOption === index}
-                                onChange={() => setSelectedOption(index)}
-                            />
-                            {option}
-                        </label>
-                    ))}
+                    <div>
+                        {poll.options.map((option, index) => (
+                            <div key={`option-${poll.id}-${index}`}>
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name={`poll-${poll.id}`}
+                                        value={index}
+                                        checked={selectedOption[poll.id] === index}
+                                        onChange={() => handleOptionChange(poll.id, index)}
+                                    />
+                                    {option}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
                     <button onClick={() => voteOnPoll(poll.id)}>Vote</button>
                 </div>
             ))}
