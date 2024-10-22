@@ -1,56 +1,44 @@
 import { cookies } from "next/headers";
-import getNodeSDK from "@/app/_utils/nodeSdk";
 import { redirect } from "next/navigation";
-import ClientSideActions from "./component";
+import getNodeSDK from "../_utils/nodeSdk";
+import ClientDashboard from "./ClientDashboard";
 
-export default async function Profile() {
-    const cookieStore = cookies();
-    const session = cookieStore.get("cbo_short_session");
+export default async function ProfilePage() {
+  const cookieStore = cookies();
+  const session = cookieStore.get("cbo_short_session");
 
-    if (!session) {
-        return redirect("/");
+  if (!session) {
+    redirect("/");
+  }
+
+  const sdk = getNodeSDK();
+  let user;
+
+  try {
+    user = await sdk.sessions().validateToken(session.value);
+
+    if (!user) {
+      throw new Error("Invalid user session");
     }
 
-    const sdk = getNodeSDK();
-    let user;
+    const response = await fetch("http://localhost:3030/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: user.userId,
+        name: user.fullName,
+      }),
+    });
 
-    try {
-        user = await sdk.sessions().validateToken(session.value);
-        if (!user) {
-            throw Error;
-        }
+    const data = await response.json();
 
-        await fetch("http://localhost:3030/api/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                user_id: user.userId,
-                name: user.fullName,
-            }),
-        });
-
-        const pollsResponse = await fetch(`http://localhost:3030/api/polls/${user.userId}`);
-        const polls = await pollsResponse.json();
-
-        return (
-            <ClientProfile user={user} polls={polls} />
-        );
-    } catch {
-        return redirect("/");
+    if (data.token) {
+      return <ClientDashboard user={user} token={data.token} />;
     }
-}
+  } catch (error) {
+    console.error("Error during session validation or login:", error);
+    redirect("/");
+  }
 
-function ClientProfile({ user, polls }: { user: any, polls: any[] }) {
-    return (
-        <div>
-            <h1>Welcome to the Polling App</h1>
-            <p>
-                User-ID: {user.userId}<br />
-                Name: {user.fullName}
-            </p>
-            <ClientSideActions polls={polls} />
-        </div>
-    );
+  return null;
 }
