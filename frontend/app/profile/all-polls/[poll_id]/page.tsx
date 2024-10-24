@@ -8,6 +8,8 @@ import PollActions from "../../../components/PollActions";
 import PollStatistics from "../../../components/PollStatistics";
 import Spinner from "@/app/_utils/Spinner";
 import PollResultGraph from "@/app/components/PollResultGraph";
+import toast from "react-hot-toast"; 
+import { useWebSocket } from "@/app/_utils/useWebSocket"; // Import WebSocket hook
 
 interface PollOption {
   id: string;
@@ -26,23 +28,22 @@ interface Vote {
   option_ids: { $oid: string }[];
 }
 
-export default function PollDetailPage({
-  params,
-}: {
-  params: { poll_id: string };
-}) {
+export default function PollDetailPage({ params }: { params: { poll_id: string } }) {
   const [poll, setPoll] = useState<Poll | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [previousVote, setPreviousVote] = useState<Vote | null>(null);
   const { user } = useUser();
   const router = useRouter();
 
+  // Use WebSocket to receive real-time poll updates
+  const { results, status, isReset, error } = useWebSocket(params.poll_id);
+
   useEffect(() => {
     const fetchPollAndVote = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
-          alert("Please log in.");
+          toast.error("Please log in.");
           router.push("/");
           return;
         }
@@ -85,18 +86,82 @@ export default function PollDetailPage({
         }
       } catch (error) {
         console.error("Error fetching poll or vote:", error);
+        toast.error("An error occurred while fetching poll or vote.");
       }
     };
 
     if (user) fetchPollAndVote();
   }, [params.poll_id, user]);
 
+  useEffect(() => {
+    // Update poll state in real-time when WebSocket sends new results
+    if (results.length > 0 && poll) {
+      setPoll((prevPoll) => ({
+        ...prevPoll!,
+        options: prevPoll!.options.map((option) => ({
+          ...option,
+          votes: results.find((res) => res._id === option.id)?.count || 0,
+        })),
+      }));
+    }
+  }, [results]);
+
+  useEffect(() => {
+    // Handle poll reset event from WebSocket
+    if (status?.poll_id === poll?.id) {
+      if (status?.is_active === false && poll?.isactive) {
+        setPoll((prevPoll) => ({
+          ...prevPoll!,
+          isactive: false,
+        }));
+        toast.error("This Poll has been disabled");
+      } else if (status?.is_active === true && !poll?.isactive) {
+        setPoll((prevPoll) => ({
+          ...prevPoll!,
+          isactive: true, // Change this to true
+        }));
+        toast.success("This Poll has been enabled");
+      }
+    }
+  }, [status, poll]);
+  
+  
+useEffect(() => {
+    // Update poll state in real-time when WebSocket sends new results
+    if (results.length > 0 && poll) {
+      setPoll((prevPoll) => ({
+        ...prevPoll!,
+        options: prevPoll!.options.map((option) => ({
+          ...option,
+          votes: results.find((res) => res._id === option.id)?.count || 0,
+        })),
+      }));
+    }
+  }, [results]);
+  useEffect(() => {
+    // Reset poll state every time the WebSocket signals a reset
+    if (isReset && poll) {
+      handlePollReset();
+    }
+  }, [isReset]);
+  const handlePollReset = () => {
+    // Clear selected options and previous votes
+    setSelectedOptions([]);
+    setPreviousVote(null);
+
+    // Reset poll votes to 0
+    setPoll((prevPoll) => ({
+      ...prevPoll!,
+      options: prevPoll!.options.map((option) => ({ ...option, votes: 0 })),
+    }));
+
+    toast.success("Poll has been reset. Please vote again.");
+  };
+
   const handleOptionChange = (optionId: string) => {
     if (poll?.is_multiple_choice) {
       setSelectedOptions((prev) =>
-        prev.includes(optionId)
-          ? prev.filter((id) => id !== optionId)
-          : [...prev, optionId]
+        prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId]
       );
     } else {
       setSelectedOptions([optionId]);
@@ -108,14 +173,13 @@ export default function PollDetailPage({
     JSON.stringify(previousVote?.option_ids.map((opt) => opt.$oid).sort());
 
   const submitVote = async () => {
-    if (!user) return alert("Please log in to vote.");
-    if (selectedOptions.length === 0)
-      return alert("Select at least one option.");
+    if (!user) return toast.error("Please log in to vote.");
+    if (selectedOptions.length === 0) return toast.error("Select at least one option.");
 
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("No token found. Please log in again.");
+        toast.error("No token found. Please log in again.");
         router.push("/");
         return;
       }
@@ -136,15 +200,15 @@ export default function PollDetailPage({
       );
 
       if (response.ok) {
-        alert(previousVote ? "Vote updated!" : "Vote submitted!");
-        router.push("/profile/all-polls");
+        toast.success(previousVote ? "Vote updated!" : "Vote submitted!");
+        setPreviousVote({ option_ids: selectedOptions.map((id) => ({ $oid: id })) });
       } else {
         const errorData = await response.json();
-        alert(errorData.message || "Failed to submit vote.");
+        toast.error(errorData.message || "Failed to submit vote.");
       }
     } catch (error) {
       console.error("Error submitting vote:", error);
-      alert("An error occurred while submitting your vote.");
+      toast.error("An error occurred while submitting your vote.");
     }
   };
 
@@ -154,7 +218,7 @@ export default function PollDetailPage({
     <div className="flex justify-center p-6">
       <div className="flex flex-col space-y-8 w-full max-w-6xl">
         <div className="flex flex-col md:flex-row space-y-8 md:space-y-0 md:space-x-8">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full md:w-1/2 transition-transform transform hover:scale-105 duration-300 ease-in-out">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full md:w-1/2">
             <PollQuestion question={poll.question} isactive={poll.isactive} />
             <div className="mt-4">
               <PollOptions
@@ -176,17 +240,15 @@ export default function PollDetailPage({
             </div>
           </div>
 
-          <div className="bg-gray-50 p-6 rounded-lg shadow-lg w-full md:w-1/2 transition-transform transform hover:scale-105 duration-300 ease-in-out">
+          <div className="bg-gray-50 p-6 rounded-lg shadow-lg w-full md:w-1/2">
             <h2 className="text-xl font-semibold mb-4 text-center">Results</h2>
             <PollStatistics pollId={poll.id} options={poll.options} />
           </div>
         </div>
 
         <div className="flex justify-center">
-          <div className="bg-gray-50 p-6 rounded-lg shadow-lg w-1/2 transition-transform transform hover:scale-105 duration-300 ease-in-out">
-            <h2 className="text-xl font-semibold mb-4 text-center">
-              Result Graphs
-            </h2>
+          <div className="bg-gray-50 p-6 rounded-lg shadow-lg w-1/2">
+            <h2 className="text-xl font-semibold mb-4 text-center">Result Graphs</h2>
             <PollResultGraph pollId={poll.id} options={poll.options} />
           </div>
         </div>

@@ -13,6 +13,7 @@ import {
   PointElement,
   LineElement,
 } from "chart.js";
+import { useWebSocket } from "../_utils/useWebSocket"; // Import WebSocket hook
 
 ChartJS.register(
   ArcElement,
@@ -37,26 +38,13 @@ interface VoteResult {
 
 const PollResultGraph: React.FC<PollResultGraphProps> = ({ options, pollId }) => {
   const [graphType, setGraphType] = useState<"pie" | "bar">("pie");
-  const [votes, setVotes] = useState<VoteResult[]>([]);
+  const { results: votes, error } = useWebSocket(pollId); // Use WebSocket for votes
+  const safeVotes = votes || []; // Ensure votes is always an array
 
+  // Log WebSocket updates for debugging
   useEffect(() => {
-    const fetchResults = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/poll_results/${pollId}`
-        );
-
-        if (!response.ok) throw new Error("Failed to fetch poll results");
-
-        const data: VoteResult[] = await response.json();
-        setVotes(data);
-      } catch (error) {
-        console.error("Error fetching poll results:", error);
-      }
-    };
-
-    fetchResults();
-  }, [pollId]);
+    console.log("Updated votes from WebSocket:", safeVotes);
+  }, [safeVotes]);
 
   const data = {
     labels: options.map((option) => option.option_text),
@@ -64,7 +52,7 @@ const PollResultGraph: React.FC<PollResultGraphProps> = ({ options, pollId }) =>
       {
         label: "Votes",
         data: options.map(
-          (option) => votes.find((vote) => vote._id === option.id)?.count || 0
+          (option) => safeVotes.find((vote) => vote._id === option.id)?.count || 0
         ),
         backgroundColor: ["#3498db", "#2ecc71", "#e74c3c", "#f1c40f"],
         borderWidth: 1,
@@ -73,14 +61,18 @@ const PollResultGraph: React.FC<PollResultGraphProps> = ({ options, pollId }) =>
   };
 
   const renderGraph = () => {
-    const chartStyle = { width: '50%', margin: '0 auto' };
-    
+    const chartStyle = { width: "50%", margin: "0 auto" };
+
     switch (graphType) {
       case "bar":
         return <Bar data={data} />;
       case "pie":
       default:
-        return <div style={chartStyle}><Pie data={data} /></div>;
+        return (
+          <div style={chartStyle}>
+            <Pie data={data} />
+          </div>
+        );
     }
   };
 

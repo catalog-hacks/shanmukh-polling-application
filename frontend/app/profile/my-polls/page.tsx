@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useUser } from "../../_utils/UserContext";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast"; // Import toast
 
 interface Poll {
   _id: { $oid: string };
@@ -23,7 +24,7 @@ export default function MyPollsPage() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Please log in again.");
+        toast.error("Please log in again.");
         router.push("/");
         return;
       }
@@ -35,22 +36,19 @@ export default function MyPollsPage() {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to fetch polls");
+      if (!response.ok) throw new Error("Failed to fetch polls.");
 
       const data = await response.json();
       setPolls(data);
     } catch (error) {
       console.error("Error fetching polls:", error);
+      toast.error("Failed to load polls. Please try again.");
     }
   }, [user, router]);
 
   useEffect(() => {
     fetchPolls();
   }, [fetchPolls]);
-
-  if (!polls.length) {
-    return <p className="text-center mt-6">No polls available.</p>;
-  }
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
@@ -64,7 +62,7 @@ export default function MyPollsPage() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Please log in again.");
+        toast.error("Please log in again.");
         router.push("/");
         return;
       }
@@ -81,15 +79,15 @@ export default function MyPollsPage() {
       );
 
       if (response.ok) {
-        alert("Votes reset successfully.");
+        toast.success("Votes reset successfully.");
         fetchPolls();
       } else {
         const data = await response.json();
-        alert(data.message || "Failed to reset votes.");
+        toast.error(data.message || "Failed to reset votes.");
       }
     } catch (error) {
       console.error("Error resetting votes:", error);
-      alert("An error occurred.");
+      toast.error("An error occurred. Please try again.");
     }
   };
 
@@ -97,7 +95,7 @@ export default function MyPollsPage() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Please log in again.");
+        toast.error("Please log in again.");
         router.push("/");
         return;
       }
@@ -115,20 +113,26 @@ export default function MyPollsPage() {
       );
 
       if (response.ok) {
-        alert(`Poll ${newStatus ? "enabled" : "disabled"} successfully.`);
+        toast.success(
+          `Poll ${newStatus ? "enabled" : "disabled"} successfully.`
+        );
         fetchPolls();
       } else {
         const data = await response.json();
-        alert(data.message || "Failed to update poll status.");
+        toast.error(data.message || "Failed to update poll status.");
       }
     } catch (error) {
       console.error("Error updating poll status:", error);
-      alert("An error occurred.");
+      toast.error("An error occurred. Please try again.");
     }
   };
 
   const getStatusColor = (isActive: boolean) =>
     isActive ? "text-green-500" : "text-red-500";
+
+  if (!polls.length) {
+    return <p className="text-center mt-6">No polls available.</p>;
+  }
 
   return (
     <div className="p-6">

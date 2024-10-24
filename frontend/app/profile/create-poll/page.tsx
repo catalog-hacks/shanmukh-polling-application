@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { FaTrashAlt } from "react-icons/fa";
 import { useUser } from "../../_utils/UserContext";
+import toast from "react-hot-toast";
 
 export default function CreatePollPage() {
   const [question, setQuestion] = useState("");
@@ -25,14 +26,18 @@ export default function CreatePollPage() {
   const createPoll = async () => {
     try {
       const backend_url = process.env.NEXT_PUBLIC_BACKEND_URL;
-
+      const filteredOptions = options.filter(option => option.trim() !== "");
+      if (filteredOptions.length <= 1) {
+        toast.error("Please provide at least two options.");
+        return;
+      }
       const response = await fetch(`${backend_url}/api/create_polls`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           created_by: user_id,
           question,
-          options,
+          options: filteredOptions,
           is_multiple_choice: multipleChoices,
         }),
       });
