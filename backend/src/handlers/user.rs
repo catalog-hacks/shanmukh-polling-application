@@ -1,43 +1,40 @@
-#[path = "../models/mod.rs"] mod models;
-use models::user::User;
+use crate::models::user::User;
+use crate::repositories::Repository;
 use actix_web::{web, HttpResponse, Responder};
-use mongodb::{bson::doc, Client};
+use actix_web_httpauth::extractors::bearer::BearerAuth;
 use serde::Deserialize;
-use mongodb::error::Error;
+use std::sync::Arc;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct LoginData {
     pub user_id: String,
     pub name: String,
 }
 
-pub async fn store_user(
-    mongo_client: web::Data<Client>,
-    user_id: String,
-    name: String,
-) -> Result<(), Error> {
-    let collection = mongo_client
-        .database("polling_app")
-        .collection::<User>("users");
+// Store or Login User Handler
+pub async fn login_handler(
+    repo: web::Data<Arc<dyn Repository>>,
+    web::Json(login_data): web::Json<LoginData>,
+) -> impl Responder {
+    let user = User {
+        id: None,
+        user_id: login_data.user_id.clone(),
+        name: login_data.name.clone(),
+    };
 
-    let user_exists = collection
-        .find_one(doc! { "user_id": &user_id })
-        .await?;
-
-    if user_exists.is_none() {
-        let new_user = User::_new(user_id, name);
-        collection.insert_one(new_user).await?;
+    match repo.store_user(user).await {
+        Ok(_) => match crate::utils::jwt::_create_jwt(&login_data.user_id) {
+            Ok(token) => HttpResponse::Ok().json(serde_json::json!({ "token": token })),
+            Err(_) => HttpResponse::InternalServerError().body("Failed to create JWT"),
+        },
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
-
-    Ok(())
 }
 
-pub async fn login_handler(
-    mongo_client: web::Data<Client>,
-    login_data: web::Json<LoginData>,
-) -> impl Responder {
-    match store_user(mongo_client, login_data.user_id.clone(), login_data.name.clone()).await {
-        Ok(_) => HttpResponse::Ok().body("User stored or already exists"),
-        Err(_) => HttpResponse::InternalServerError().body("Failed to store user"),
+// Get User ID from JWT
+pub async fn get_user_id(auth: BearerAuth) -> impl Responder {
+    match crate::utils::jwt::_verify_jwt(auth.token()) {
+        Ok(user_id) => HttpResponse::Ok().json(serde_json::json!({ "user_id": user_id })),
+        Err(_) => HttpResponse::Unauthorized().body("Invalid or expired token"),
     }
 }

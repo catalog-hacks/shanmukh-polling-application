@@ -1,24 +1,38 @@
-use mongodb::bson::oid::ObjectId;
+use mongodb::bson::{oid::ObjectId, doc};
 use serde::{Deserialize, Serialize};
+use chrono::Utc;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Poll {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
-    pub user_id: String,  // Reference to User
     pub question: String,
-    pub options: Vec<String>,
-    pub votes: Vec<i32>,  // Track votes for each option
+    pub options: Vec<(ObjectId, String)>,
+    pub created_by: String,
+    pub created_at: chrono::DateTime<Utc>,
+    pub is_multiple_choice: bool,
+    pub isactive: bool,
 }
 
 impl Poll {
-    pub fn _new(user_id: String, question: String, options: Vec<String>) -> Self {
+    pub fn _new(
+        question: String,
+        options: Vec<String>,
+        created_by: String,
+        is_multiple_choice: bool,
+    ) -> Self {
+        let options_with_ids = options.into_iter()
+            .map(|text| (ObjectId::new(), text))
+            .collect();
+
         Poll {
             id: None,
-            user_id,
             question,
-            options: options.clone(),
-            votes: vec![0; options.len()], // Initialize votes to 0 for each option
+            options: options_with_ids,
+            created_by,
+            created_at: Utc::now(),
+            is_multiple_choice,
+            isactive: true,
         }
     }
 }
