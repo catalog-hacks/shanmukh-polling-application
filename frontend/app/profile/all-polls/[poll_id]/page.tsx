@@ -8,8 +8,8 @@ import PollActions from "../../../components/PollActions";
 import PollStatistics from "../../../components/PollStatistics";
 import Spinner from "@/app/_utils/Spinner";
 import PollResultGraph from "@/app/components/PollResultGraph";
-import toast from "react-hot-toast"; 
-import { useWebSocket } from "@/app/_utils/useWebSocket"; // Import WebSocket hook
+import toast from "react-hot-toast";
+import { useWebSocket } from "@/app/_utils/useWebSocket";
 
 interface PollOption {
   id: string;
@@ -28,7 +28,11 @@ interface Vote {
   option_ids: { $oid: string }[];
 }
 
-export default function PollDetailPage({ params }: { params: { poll_id: string } }) {
+export default function PollDetailPage({
+  params,
+}: {
+  params: { poll_id: string };
+}) {
   const [poll, setPoll] = useState<Poll | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [previousVote, setPreviousVote] = useState<Vote | null>(null);
@@ -118,15 +122,14 @@ export default function PollDetailPage({ params }: { params: { poll_id: string }
       } else if (status?.is_active === true && !poll?.isactive) {
         setPoll((prevPoll) => ({
           ...prevPoll!,
-          isactive: true, // Change this to true
+          isactive: true,
         }));
         toast.success("This Poll has been enabled");
       }
     }
   }, [status, poll]);
-  
-  
-useEffect(() => {
+
+  useEffect(() => {
     // Update poll state in real-time when WebSocket sends new results
     if (results.length > 0 && poll) {
       setPoll((prevPoll) => ({
@@ -148,8 +151,6 @@ useEffect(() => {
     // Clear selected options and previous votes
     setSelectedOptions([]);
     setPreviousVote(null);
-
-    // Reset poll votes to 0
     setPoll((prevPoll) => ({
       ...prevPoll!,
       options: prevPoll!.options.map((option) => ({ ...option, votes: 0 })),
@@ -161,7 +162,9 @@ useEffect(() => {
   const handleOptionChange = (optionId: string) => {
     if (poll?.is_multiple_choice) {
       setSelectedOptions((prev) =>
-        prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId]
+        prev.includes(optionId)
+          ? prev.filter((id) => id !== optionId)
+          : [...prev, optionId]
       );
     } else {
       setSelectedOptions([optionId]);
@@ -174,7 +177,8 @@ useEffect(() => {
 
   const submitVote = async () => {
     if (!user) return toast.error("Please log in to vote.");
-    if (selectedOptions.length === 0) return toast.error("Select at least one option.");
+    if (selectedOptions.length === 0)
+      return toast.error("Select at least one option.");
 
     try {
       const token = localStorage.getItem("token");
@@ -201,7 +205,9 @@ useEffect(() => {
 
       if (response.ok) {
         toast.success(previousVote ? "Vote updated!" : "Vote submitted!");
-        setPreviousVote({ option_ids: selectedOptions.map((id) => ({ $oid: id })) });
+        setPreviousVote({
+          option_ids: selectedOptions.map((id) => ({ $oid: id })),
+        });
       } else {
         const errorData = await response.json();
         toast.error(errorData.message || "Failed to submit vote.");
@@ -248,7 +254,9 @@ useEffect(() => {
 
         <div className="flex justify-center">
           <div className="bg-gray-50 p-6 rounded-lg shadow-lg w-1/2">
-            <h2 className="text-xl font-semibold mb-4 text-center">Result Graphs</h2>
+            <h2 className="text-xl font-semibold mb-4 text-center">
+              Result Graphs
+            </h2>
             <PollResultGraph pollId={poll.id} options={poll.options} />
           </div>
         </div>

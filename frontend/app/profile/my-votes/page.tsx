@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Spinner from "@/app/_utils/Spinner";
-import toast from "react-hot-toast"; // Import toast
+import toast from "react-hot-toast";
 
 interface Poll {
   _id: { $oid: string };

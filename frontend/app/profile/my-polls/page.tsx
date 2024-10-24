@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useUser } from "../../_utils/UserContext";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast"; // Import toast
+import toast from "react-hot-toast";
 
 interface Poll {
   _id: { $oid: string };

@@ -29,7 +29,6 @@ async fn main() -> std::io::Result<()> {
             .wrap(
                 Cors::default()
                     .allowed_origin("http://localhost:3000")
-                    .allowed_origin("http://10.67.20.227:3000")
                     .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
                     .allowed_headers(vec![
                         actix_web::http::header::CONTENT_TYPE,

@@ -1,4 +1,3 @@
-// hooks/useWebSocket.ts
 import { useState, useEffect, useCallback } from 'react';
 
 export function useWebSocket(pollId: string) {
@@ -62,7 +61,6 @@ export function useWebSocket(pollId: string) {
         websocket.onclose = () => {
             console.log('WebSocket disconnected');
             setError('WebSocket connection closed');
-            //TODO: reconnect after disconnecting
         };
 
         setWs(websocket);

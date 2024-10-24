@@ -13,7 +13,7 @@ import {
   PointElement,
   LineElement,
 } from "chart.js";
-import { useWebSocket } from "../_utils/useWebSocket"; // Import WebSocket hook
+import { useWebSocket } from "../_utils/useWebSocket";
 
 ChartJS.register(
   ArcElement,
@@ -38,13 +38,8 @@ interface VoteResult {
 
 const PollResultGraph: React.FC<PollResultGraphProps> = ({ options, pollId }) => {
   const [graphType, setGraphType] = useState<"pie" | "bar">("pie");
-  const { results: votes, error } = useWebSocket(pollId); // Use WebSocket for votes
-  const safeVotes = votes || []; // Ensure votes is always an array
-
-  // Log WebSocket updates for debugging
-  useEffect(() => {
-    console.log("Updated votes from WebSocket:", safeVotes);
-  }, [safeVotes]);
+  const { results: votes, error } = useWebSocket(pollId);
+  const safeVotes = votes || [];
 
   const data = {
     labels: options.map((option) => option.option_text),

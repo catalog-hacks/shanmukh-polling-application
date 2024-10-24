@@ -137,7 +137,7 @@ impl VoteRepository for MongoDBRepository {
     async fn submit_or_update_vote(&self, vote: Vote) -> Result<(), Box<dyn Error>> {
         let filter = doc! {
             "poll_id": vote.poll_id,
-            "user_id": vote.user_id.clone()  // Clone here to avoid partial move
+            "user_id": vote.user_id.clone()
         };
     
         // Perform update operation

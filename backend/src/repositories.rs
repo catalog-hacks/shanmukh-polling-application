@@ -12,8 +12,6 @@ pub trait PollRepository {
     async fn update_poll_status(&self, id: ObjectId, is_active: bool) -> Result<(), Box<dyn Error>>;
     async fn reset_votes_for_poll(&self, poll_id: ObjectId) -> Result<(), Box<dyn Error>>;
     async fn get_poll_results(&self, poll_id: ObjectId) -> Result<Vec<(ObjectId, i32)>, Box<dyn Error>>;
-
-    /// **New Method**: Fetch multiple polls by their Object IDs
     async fn find_polls_by_ids(&self, poll_ids: Vec<ObjectId>) -> Result<Vec<Poll>, Box<dyn Error>>;
 }
 

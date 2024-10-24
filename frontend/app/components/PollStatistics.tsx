@@ -1,4 +1,3 @@
-// components/PollStatistics.tsx
 "use client";
 import { useWebSocket } from "../_utils/useWebSocket";
 

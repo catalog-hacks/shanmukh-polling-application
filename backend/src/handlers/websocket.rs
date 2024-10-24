@@ -27,7 +27,7 @@ static SESSION_COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::Atom
 // Modified structure to store Session with a unique ID
 struct SessionWrapper {
     id: usize,
-    session: Session,
+    _session: Session,
 }
 
 static POLL_UPDATES: Lazy<(Sender<PollUpdate>, RwLock<HashMap<String, Vec<SessionWrapper>>>)> = Lazy::new(|| {
@@ -45,7 +45,7 @@ pub async fn ws_handler(
     let session_id = SESSION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let session_wrapper = SessionWrapper {
         id: session_id,
-        session: session.clone(),
+        _session: session.clone(),
     };
     
     // Store the session for this poll
@@ -122,7 +122,6 @@ async fn ws_client(
     }
 }
 
-// Helper function to broadcast updates
 pub async fn broadcast_poll_update(update: PollUpdate) {
     let _ = POLL_UPDATES.0.send(update);
 }
